@@ -1,4 +1,4 @@
-# LCA 图书馆推荐算法
+# LRA 图书馆推荐算法
 
 ## 数据预处理模块
 
@@ -73,5 +73,4 @@ python test_advanced.py
 - 预测：`--plan` 默认 `outputs/advanced/locked_plan.json`；`--readers` 当前仅读取读者条码；`--as-of` 可限制历史排他上界。
 - 默认评估输出：`outputs/advanced/experiment_report.json`、`metrics.csv`、验证试验表、`locked_plan.json`、各方法 Top-10、逐读者指标及模型权重；配对重采样区间位于报告的 `paired_comparison`。
 - 默认预测输出：`outputs/advanced_prediction/result.csv` 及训练摘要。原基线输出保持在原目录，实验原理和结果见 [DETAIL.md](DETAIL.md)。
-
 
