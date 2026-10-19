@@ -2,3 +2,5 @@ venv/
 test_preprocess.py
 data/processed/
 __pycache__/
+outputs/
+.model_deps/

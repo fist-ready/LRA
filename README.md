@@ -1,47 +1,77 @@
-
+# LCA 图书馆推荐算法
 
 ## 数据预处理模块
 
 ### 用法
 
 ```powershell
-python process.py --input "input path" --output-dir "output path" --sheet "work sheet name"
+python preprocess.py
 ```
 
-`--input`：输入完整数据集的 `.xlsx` 文档绝对路径，默认值为 `./data/2022-2025处理后借阅信息.xlsx`；
+需要指定输入、输出目录或工作表时：
 
-`--output-dir`：输出的处理后的 `.csv` 文件路径，默认值为 `./data/processed`；
+```powershell
+python preprocess.py --input "input path" --output-dir "output directory" --sheet "work sheet name"
+```
 
-`--sheet` ：用来指定 Excel 中要读取的工作表名称，就是 Excel 底部的标签页，省略时，代码会自动查找包含必要字段的工作表。你这份数据只有 `Sheet1`，所以可以省略；
+- `--input`：输入 Excel 文件，可使用绝对路径或相对路径。默认值：脚本目录下的 `data/2022-2025处理后借阅信息.xlsx`。
 
+- `--output-dir`：输出目录，脚本在其中保存三个 CSV 文件。默认值：脚本目录下的 `data/processed`。
 
+- `--sheet`：Excel 底部标签页的名称；省略时自动定位借阅明细工作表。默认值：自动识别；当前数据为 `Sheet1`。
 
 ### 输出
 
-`borrowing_cleaned.csv`：清洗后的借阅明细，用于后续建模；
+- `data/processed/borrowing_cleaned.csv`：清洗后的借阅明细、派生属性和问题标记。用途：后续特征处理与推荐建模。
 
-`quality_metrics.csv`：总体指标、异常检查数量和行数对账；
+- `data/processed/quality_metrics.csv`：数据规模、完整率、重复量、稀疏度、检查命中数及处理结果。用途：判断数据整体情况及清洗影响。
 
-`field_quality.csv`：每个字段的缺失数量、缺失率及“未知”数量
+- `data/processed/field_quality.csv`：每个原始字段的缺失数量、缺失率和“未知”数量。用途：定位需要处理或谨慎使用的字段。
 
-总体指标的 `category` 区分 `before`（清洗前）、`after`（清洗后）、`checks`（规则命中数量）和 `processing`（移除数量、保留率、行数对账）。比例存为 0—1 的小数。`checks` 可重叠，不能相加当成应删除的记录数。
+## 推荐基线接口
 
-字段指标中的 `clean_null_cells` 是真正的空值数，`clean_unknown_markers` 是填成“未知”的数量；两者之和是有效缺失数。完整率按同一组保留原始字段计算，排除新增列和删除的全空列。“未知”仍算缺失，避免把填充误报为数据恢复。
+在本目录运行，无需新增深度学习框架：
 
+```powershell
+python -m pip install -r requirements.txt
+python baseline.py evaluate
+python baseline.py predict
+```
 
+`evaluate` 按时间划分训练、验证、本地测试集，比较 `popular`、`itemcf`、`hybrid`，在验证集上选择方法。`predict` 默认读取验证报告，用全部公开历史重新训练，为所有历史读者生成 Top-10。
 
-### 规则
+| 参数 | 接口说明 |
+| --- | --- |
+| `--input`、`--output-dir`、`--sheet` | 两个命令通用；输入支持原 Excel 或清洗 CSV；默认输入与预处理模块相同 |
+| `evaluate --valid-start`、`--test-start`、`--test-end` | 默认验证起点 `2024-09-01`、测试起点 `2024-11-01`；测试排他上界默认不限 |
+| `--neighbors`、`--max-history`、`--half-life-days`、`--shrinkage`、`--group-min-users` | 默认依次为 `50`、`100`、`180`、`10`、`5` |
+| `--exclude-seen`、`--k` | 可排除历史已借图书；默认允许复借、`k=10` |
+| `predict --method`、`--selection-report` | 默认 `auto` 读取 `outputs/baseline/evaluation_report.json` 的方法与参数，也可显式选三种方法之一 |
+| `predict --readers`、`--as-of` | 可指定读者 CSV（必需列：读者条码，可附专业/系别/年级），以及训练记录的排他时间上界 |
 
-1. 识别第 3 行真实表头；条码保留为文本，保护前导零和长编号。
-2. 清理空白和控制字符，将“不详”“未填写”等占位文字识别为缺失。
-3. 核心读者条码、图书条形码、处理时间缺失或无效，以及非借书操作，移除并计数。
-4. 仅删除除序号外全部业务字段相同的记录；不同时间的重复借阅保留，同事件属性冲突仅标记。
-5. 年级统一成整数年份。无效年级先置空，仅从本行“YYYY级”班级信息恢复；系别仅从本行完整学院单位恢复。
-6. 其余分类属性缺失填“未知”；数值和时间保持可空，负数、无穷值、非整数超期天数置空。
-7. 出版日期保留原文，另提取出版年份；多年份、非法或晚于借阅年份的派生年份留空。索书号另提取中图法一级类目。
-8. 外借、应还与处理时间不一致时标记，借阅序列以处理时间排序。预期月份外记录只提示，高频用户和图书不自动删去。
-9. 同一实体属性多值时标记。按馆藏条形码区分图书，不按题名或登录号合并。
-10. 删除全空的流通库室键码、附件、架位号。不使用未来记录或全局众数回填历史属性。
+默认评估输出为 `outputs/baseline/` 下的 `splits/`、`metrics.csv`、`evaluation_report.json`、各方法推荐与逐读者指标。默认预测输出为 `outputs/prediction/result.csv` 及 `prediction_summary.json`。
 
-`quality_flags` 是行级问题标记，不表示整条借阅无效；`source_excel_row` 用来回查原 Excel。原来的 `missing_fields`、`filled_fields` 审计字符串列已去除。
+`result.csv` 暂用 `读者条码,推荐1,...,推荐10` 的本地格式，正式模板发布后再适配。原 Excel 保持只读。参数详情用 `python baseline.py evaluate --help` / `python baseline.py predict --help` 查看；原理、指标和实验结果见 [DETAIL.md](DETAIL.md)。
+
+```powershell
+python test_baseline.py
+```
+
+## 多路推荐实验接口
+
+```powershell
+python -m pip install -r requirements-advanced.txt
+python advanced.py evaluate
+python advanced.py predict
+python test_advanced.py
+```
+
+`evaluate` 比较原融合基线、BPR-MF、属性 BPR、Item2Vec、GRU、内容及最近借阅分支，并仅在验证集选择轮数和融合权重。`predict` 读取冻结计划，用全历史重新训练选定分支。
+
+- 通用：`--input`、`--output-dir`、`--sheet`。
+- 评估：`--valid-start`、`--test-start`、`--test-end` 沿用基线；`--dimensions 32`、`--mf-epochs 30`、`--item2vec-epochs 12`、`--gru-epochs 24`、`--candidate-k 200`、`--seed 2026`、`--threads 4` 可调整。其他选项见 `evaluate --help`。
+- 预测：`--plan` 默认 `outputs/advanced/locked_plan.json`；`--readers` 当前仅读取读者条码；`--as-of` 可限制历史排他上界。
+- 默认评估输出：`outputs/advanced/experiment_report.json`、`metrics.csv`、验证试验表、`locked_plan.json`、各方法 Top-10、逐读者指标及模型权重；配对重采样区间位于报告的 `paired_comparison`。
+- 默认预测输出：`outputs/advanced_prediction/result.csv` 及训练摘要。原基线输出保持在原目录，实验原理和结果见 [DETAIL.md](DETAIL.md)。
+
 
