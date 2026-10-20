@@ -74,3 +74,24 @@ python test_advanced.py
 - 默认评估输出：`outputs/advanced/experiment_report.json`、`metrics.csv`、验证试验表、`locked_plan.json`、各方法 Top-10、逐读者指标及模型权重；配对重采样区间位于报告的 `paired_comparison`。
 - 默认预测输出：`outputs/advanced_prediction/result.csv` 及训练摘要。原基线输出保持在原目录，实验原理和结果见 [DETAIL.md](DETAIL.md)。
 
+## 多时间窗口优化接口
+
+先运行上一节的 `advanced.py evaluate` 生成参照计划；同一组对比使用相同的 Python 与数值库环境。
+
+```powershell
+python -m pip install -r requirements-optimized.txt
+python optimized.py evaluate
+python optimized.py predict
+python test_optimized.py
+```
+
+`evaluate` 用三个历史窗口选择 EASE、RP3、书目聚合、属性先验及复借探索的参数和组合，再与原基线、上一轮融合、最近借阅策略比较。`predict` 读取本轮冻结计划，用全部公开历史生成 Top-10。
+
+- 通用：`--input`、`--output-dir`、`--sheet`。
+- 评估：`--previous-plan` 默认上一轮的 `outputs/advanced/locked_plan.json`；`--dev-window START END` 可重复指定开发窗口；`--diagnostic-start` 默认 `2024-11-01`，`--diagnostic-end` 为可选排他终点；`--bootstrap-samples` 默认 `5000`。
+- 重算已冻结实验可加 `evaluate --reuse-selection PLAN_PATH`，保持该计划的参数和组合。
+- 预测：`--plan` 默认 `outputs/optimized/locked_plan.json`；`--readers` 可附预测前独立已知的专业、系别、年级；可选 `画像时间` 必须严格早于 `--as-of`。省略读者清单时为全部历史读者推荐。
+- 默认输出：`outputs/optimized/` 保存协议、参数试验、策略试验、冻结计划、各窗口推荐、逐读者指标与 `experiment_report.json`；全历史预测在 `outputs/optimized_prediction/result.csv`。
+
+旧测试区间已经看过，本轮将其称为“复用诊断区间”。算法、验证口径、属性消融及完整结果见 [DETAIL.md](DETAIL.md)。
+
