@@ -1,0 +1,9 @@
+-r requirements-optimized.txt
+catboost==1.2.8
+transformers==4.57.6
+huggingface-hub==0.36.0
+tokenizers==0.22.2
+safetensors==0.7.0
+scikit-learn==1.7.2
+threadpoolctl==3.6.0
+joblib==1.5.2

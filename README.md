@@ -95,3 +95,23 @@ python test_optimized.py
 
 旧测试区间已经看过，本轮将其称为“复用诊断区间”。算法、验证口径、属性消融及完整结果见 [DETAIL.md](DETAIL.md)。
 
+## 内容召回与学习排序接口
+
+需要上一节生成的冻结计划和参照报告。
+
+```powershell
+python -m pip install -r requirements-ranking.txt
+python ranking.py prepare-model
+python test_ranking.py
+python ranking.py evaluate
+python ranking.py predict
+python verify_ranking.py --prediction-dir outputs/ranking_prediction
+```
+
+- `prepare-model --model-dir`：下载并记录官方 BGE 中文小模型版本与校验值；默认放入 `.model_deps/bge-small-zh-v1.5/`。
+- `evaluate --previous-plan --model-dir --input --output-dir`：默认沿用第二轮冻结方案；比较现有召回排序、扩展内容召回与扩展排序。中断后运行相同命令，自动复用完整快照与已完成比较。
+- `predict --plan --input --readers --as-of --output-dir`：默认使用 `outputs/ranking/locked_plan.json`；读者 CSV 可附预测前独立已知的专业、系别、年级和画像时间。
+- 评估输出：`outputs/ranking/experiment_report.json`、`comparison.csv`、`locked_plan.json`、`progress.json`、历史快照特征、推荐与排序权重。
+- 全历史预测：`outputs/ranking_prediction/result.csv`。方法与结果见 [DETAIL.md](DETAIL.md)，中断恢复记录见 [PROGRESS_RANKING.md](PROGRESS_RANKING.md)。
+- `verify_ranking.py --output-dir --prediction-dir`：从导出列表重算评价指标并核验候选和时间边界；`--prediction-dir` 可选，默认审计目录为 `outputs/ranking/`。
+
