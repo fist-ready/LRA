@@ -1,0 +1,1 @@
+{"epochs":8,"seed":2026,"cutoff":"2025-09-01","events":"gap30","encoder":"gru","objective":"joint","fusion":{"base":1,"event":0.5,"depth":100,"k":20},"no_history":"portrait_or_popular"}

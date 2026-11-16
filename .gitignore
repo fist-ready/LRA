@@ -1,0 +1,21 @@
+# Source-only publication. New data, outputs, environments, model weights
+# and caches stay local by default, even if a tool changes their names.
+*
+!/.gitignore
+!/*.py
+!/*.ps1
+!/*.md
+!/requirements*.txt
+!/book_topics_v2.json
+
+# Competition notes contain contact details and aren't needed to run the code.
+/C题_图书馆推荐算法.md
+
+# Source of the competition submission (not the runnable binary/data bundle).
+!/submission/
+!/submission/*.py
+!/submission/*.md
+!/submission/requirements.txt
+!/submission/book_topics_v2.json
+!/submission/config.json
+!/submission/reference.sha256
